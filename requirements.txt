@@ -1,0 +1,6 @@
+selenium~=4.31.0
+genanki~=0.13.1
+beautifulsoup4~=4.13.3
+ruff~=0.11.5
+requests~=2.32.3
+tqdm~=4.67.1
