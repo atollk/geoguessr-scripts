@@ -32,7 +32,7 @@ def scrape_table_data(url: str, wait_time: int = 10) -> Iterator[tuple[str, str]
 
     # Set up the webdriver
     options = webdriver.FirefoxOptions()
-    options.add_argument('--headless')  # Run in headless mode (optional)
+    options.add_argument("--headless")  # Run in headless mode (optional)
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(time_to_wait=1)
 
@@ -86,27 +86,28 @@ def remove_class_attributes(html_string: str) -> str:
     return str(soup)
 
 
-def download_images(html_string: str, base_url: str, temp_folder: str = "./temp_images") -> list[str]:
+def download_images(html_string: str, temp_folder: str = "./temp_images") -> list[str]:
     # Create temp folder if it doesn't exist
     os.makedirs(temp_folder, exist_ok=True)
 
-    soup = BeautifulSoup(html_string, 'html.parser')
-    images = soup.find_all('img')
+    soup = BeautifulSoup(html_string, "html.parser")
+    images = soup.find_all("img")
 
     download_results = []
 
     for i, img in enumerate(images):
         # Get image URL and make it absolute if it's relative
-        src = img.get('src')
+        src = img.get("src")
         if not src:
             continue
 
-        img_url = urljoin(base_url, src)
+        # img_url = urljoin(base_url, src)
+        img_url = src
 
         # Determine filename
         filename = f"image_{i}_{os.path.basename(img_url)}"
-        if '?' in filename:
-            filename = filename.split('?')[0]
+        if "?" in filename:
+            filename = filename.split("?")[0]
 
         file_path = os.path.join(temp_folder, filename)
 
@@ -114,18 +115,23 @@ def download_images(html_string: str, base_url: str, temp_folder: str = "./temp_
         try:
             response = requests.get(img_url, stream=True)
             if response.status_code == 200:
-                with open(file_path, 'wb') as f:
+                with open(file_path, "wb") as f:
                     for chunk in response.iter_content(1024):
                         f.write(chunk)
                 download_results.append(file_path)
             else:
-                print(f"Failed to download {img_url}: Status code {response.status_code}")
+                print(
+                    f"Failed to download {img_url}: Status code {response.status_code}"
+                )
         except Exception as e:
             print(f"Error downloading {img_url}: {e}")
 
     return download_results
 
-def create_anki_deck(crawl_results: dict[str, str], question_image_replacements: dict[str, str]):
+
+def create_anki_deck(
+    crawl_results: dict[str, str], question_image_replacements: dict[str, str]
+):
     print("Creating Anki deck")
     model = genanki.Model(
         1425153742,
@@ -137,30 +143,46 @@ def create_anki_deck(crawl_results: dict[str, str], question_image_replacements:
         templates=[
             {
                 "name": "Card 1",
-                "qfmt": "{{Image}}",
-                "afmt": "{{Answer}}",
+                "qfmt": "<div style=\"display: flex; justify-content: center;\">{{Image}}</div>",
+                "afmt": "<div style=\"display: flex; justify-content: center;\">{{Answer}}</div>",
             },
         ],
     )
     deck = genanki.Deck(1798161526, "A Learnable Meta World - Basics")
     package = genanki.Package(deck)
-    package.media_files = [os.path.join("learnablemeta_images", v) for v in question_image_replacements.values()]
-    # TODO: remove header of answer div
+    package.media_files = [
+        os.path.join("learnablemeta_images", v)
+        for v in question_image_replacements.values()
+    ]
     for note_title, html_string in tqdm(crawl_results.items()):
-        images = download_images(html_string, "")
-        package.media_files += images
-        # TODO: render images in answer
-        question_image = question_image_replacements.get(note_title, images[0])
-        note = genanki.Note(model=model, fields=[f"<img src={os.path.basename(question_image)}>", remove_class_attributes(html_string)])
-        deck.add_note(note)
+        # TODO: render images in answer offline
+        content_images = download_images(html_string)
+        package.media_files += content_images
+        if note_title in question_image_replacements:
+            question_images = [question_image_replacements[note_title]]
+        else:
+            question_images = content_images
+        for image in question_images:
+            note = genanki.Note(
+                model=model,
+                fields=[
+                    f"<img src={os.path.basename(image)}>",
+                    remove_class_attributes(html_string),
+                ],
+            )
+            deck.add_note(note)
     package.write_to_file("output.apkg")
 
 
 def main():
-    replacements: dict[str, dict[str, str]] = json.load(open("learnablemeta_images/overrides.json"))
+    replacements: dict[str, dict[str, str]] = json.load(
+        open("learnablemeta_images/overrides.json")
+    )
     url = "https://geometa-web.pages.dev/maps/66fda352ee1c8ee4735e1aa8"
     crawl_results = list(scrape_table_data(url))
-    create_anki_deck(dict(crawl_results), replacements["A Learnable Meta World - Basics"])
+    create_anki_deck(
+        dict(crawl_results), replacements["A Learnable Meta World - Basics"]
+    )
 
 
 # Example usage

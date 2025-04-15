@@ -1,5 +1,16 @@
 {
   "A Learnable Meta World - Basics": {
-    "Australia - Bollard": "Australian_bollard.png"
+    "Australia - Bollard": "Australian_bollard.png",
+    "Brazil - Pole": "ladder_pole_brazil.png",
+    "Canada - Quebec stop sign.": "stop_quebec.png",
+    "Chile - Pole": "chile_pole.png",
+    "Denmark - Bollard": "denmark_bollard.png",
+    "Hungary - Holey pole": "pole_hungary.png",
+    "Indonesia - License plate": "Indonesia_License_Plate.png",
+    "Malaysia - License plate": "Malaysia+License+Plate.png",
+    "New Zealand - Bollard": "NZ_bollard.png",
+    "Poland - Holey pole": "Poland-poles-comp2.png",
+    "Romania - Holey pole": "ro_holeypole.png",
+    "Turkey - Bollard": "tr_bollard.png"
   }
 }
