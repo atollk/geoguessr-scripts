@@ -1,9 +1,9 @@
-import itertools
+import dataclasses
 import json
+import tempfile
 from collections.abc import Iterator
 
 import genanki
-from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,13 +11,98 @@ from selenium.webdriver.support import expected_conditions as EC
 import os
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
-from typing import List, Tuple
 
 from tqdm import tqdm
 
+from typing import List, Dict, Optional
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+import re
+import logging
 
-def scrape_table_data(url: str, wait_time: int = 10) -> Iterator[tuple[str, str]]:
+
+@dataclasses.dataclass
+class MetaMap:
+    name: str
+    author: str
+    description: str
+    map_id: str
+    difficulty: str
+
+
+def load_map_list(base_url: str) -> list[MetaMap]:
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
+
+    def extract_map_id(href: str) -> str | None:
+        if not href:
+            return None
+
+        # Extract the map ID from URLs like "https://www.geoguessr.com/maps/66fda352ee1c8ee4735e1aa8"
+        match = re.search(r"maps/([a-zA-Z0-9]+)", href)
+        if match:
+            return match.group(1)
+        return None
+
+    try:
+        driver.get(base_url)
+
+        # Find all map containers
+        map_containers = driver.find_elements(
+            By.CSS_SELECTOR,
+            "div.bg-card.text-card-foreground.rounded-xl.border.shadow.flex.flex-col",
+        )
+
+        maps_data = []
+        for container in tqdm(map_containers):
+            # Extract name
+            name_element = container.find_element(
+                By.CSS_SELECTOR, "h3.font-semibold.leading-none.tracking-tight"
+            )
+            name = name_element.text
+
+            # Extract author
+            author_element = container.find_element(
+                By.CSS_SELECTOR, "p.text-muted-foreground.text-sm strong"
+            )
+            author = author_element.text
+
+            # Extract description
+            description_element = container.find_element(
+                By.CSS_SELECTOR, "p.mt-6.text-base.text-gray-600.dark\\:text-gray-300"
+            )
+            description = description_element.text
+
+            # Extract difficulty
+            # difficulty_element = container.find_element(By.XPATH,
+            #                                            ".//svg[contains(@class, 'iconify--carbon')]/parent::div")
+            # difficulty = difficulty_element.text.strip()
+            difficulty = "?"
+
+            # Extract map_id from play link
+            play_link = container.find_element(By.CSS_SELECTOR, "a[href*='maps/']")
+            href = play_link.get_attribute("href")
+            map_id = extract_map_id(href)
+
+            maps_data.append(
+                {
+                    "name": name,
+                    "author": author,
+                    "description": description,
+                    "map_id": map_id,
+                    "difficulty": difficulty,
+                }
+            )
+        return [MetaMap(**x) for x in maps_data]
+
+    finally:
+        driver.quit()
+
+
+def scrape_table_data(url: str, wait_time: int = 10) -> dict[str, str]:
     """
     Scrape data from a web page by clicking on each td element in a table.
 
@@ -28,7 +113,7 @@ def scrape_table_data(url: str, wait_time: int = 10) -> Iterator[tuple[str, str]
     Returns:
         List of tuples containing (td_text, div_content) for each td element.
     """
-    results = []
+    result = {}
 
     # Set up the webdriver
     options = webdriver.FirefoxOptions()
@@ -51,7 +136,6 @@ def scrape_table_data(url: str, wait_time: int = 10) -> Iterator[tuple[str, str]
         page_title = driver.title
 
         # Click on each td element and process the results
-        print("Crawling...")
         for td in tqdm(td_elements):
             # Store the td text
             td_text = td.text
@@ -60,7 +144,7 @@ def scrape_table_data(url: str, wait_time: int = 10) -> Iterator[tuple[str, str]
             td.click()
 
             # Find the div with main contents
-            xpath_condition = f"[node()[contains(., '{page_title}')] and node()[contains(., '{td_text}')]]"
+            xpath_condition = f"[node()[contains(., '{page_title}')] and node()[contains(., '{td_text.replace("'", "\\'")}')]]"
             xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
             target_div = driver.find_element(By.XPATH, xpath)
 
@@ -69,8 +153,9 @@ def scrape_table_data(url: str, wait_time: int = 10) -> Iterator[tuple[str, str]
                 continue
 
             # Store the data in our results list
-            yield td_text, target_div.get_attribute("outerHTML")
+            result[td_text] = target_div.get_attribute("outerHTML")
 
+        return result
     finally:
         # Clean up
         driver.quit()
@@ -86,7 +171,7 @@ def remove_class_attributes(html_string: str) -> str:
     return str(soup)
 
 
-def download_images(html_string: str, temp_folder: str = "./temp_images") -> list[str]:
+def download_images(html_string: str, temp_folder: str) -> list[str]:
     # Create temp folder if it doesn't exist
     os.makedirs(temp_folder, exist_ok=True)
 
@@ -130,33 +215,20 @@ def download_images(html_string: str, temp_folder: str = "./temp_images") -> lis
 
 
 def create_anki_deck(
-    crawl_results: dict[str, str], question_image_replacements: dict[str, str]
-):
-    print("Creating Anki deck")
-    model = genanki.Model(
-        1425153742,
-        "Meta",
-        fields=[
-            {"name": "Image"},
-            {"name": "Answer"},
-        ],
-        templates=[
-            {
-                "name": "Card 1",
-                "qfmt": "<div style=\"display: flex; justify-content: center;\">{{Image}}</div>",
-                "afmt": "<div style=\"display: flex; justify-content: center;\">{{Answer}}</div>",
-            },
-        ],
+    *,
+    meta_map: MetaMap,
+    package: genanki.Package,
+    model: genanki.Model,
+    crawl_results: dict[str, str],
+    question_image_replacements: dict[str, str],
+    download_directory: str,
+) -> None:
+    deck = genanki.Deck(
+        hash(meta_map.name), meta_map.name, description=meta_map.description
     )
-    deck = genanki.Deck(1798161526, "A Learnable Meta World - Basics")
-    package = genanki.Package(deck)
-    package.media_files = [
-        os.path.join("learnablemeta_images", v)
-        for v in question_image_replacements.values()
-    ]
     for note_title, html_string in tqdm(crawl_results.items()):
         # TODO: render images in answer offline
-        content_images = download_images(html_string)
+        content_images = download_images(html_string, download_directory)
         package.media_files += content_images
         if note_title in question_image_replacements:
             question_images = [question_image_replacements[note_title]]
@@ -166,23 +238,67 @@ def create_anki_deck(
             note = genanki.Note(
                 model=model,
                 fields=[
+                    note_title,
                     f"<img src={os.path.basename(image)}>",
                     remove_class_attributes(html_string),
                 ],
             )
             deck.add_note(note)
-    package.write_to_file("output.apkg")
+    package.decks.append(deck)
 
 
 def main():
+    print("Loading map list")
+    map_list = load_map_list("https://geometa-web.pages.dev/maps")
+
     replacements: dict[str, dict[str, str]] = json.load(
         open("learnablemeta_images/overrides.json")
     )
-    url = "https://geometa-web.pages.dev/maps/66fda352ee1c8ee4735e1aa8"
-    crawl_results = list(scrape_table_data(url))
-    create_anki_deck(
-        dict(crawl_results), replacements["A Learnable Meta World - Basics"]
+
+    model = genanki.Model(
+        1425153742,
+        "Meta",
+        fields=[
+            {"name": "Rule Name"},
+            {"name": "Image"},
+            {"name": "Answer"},
+        ],
+        templates=[
+            {
+                "name": "Card 1",
+                "qfmt": '<div style="display: flex; justify-content: center;">{{Image}}</div>',
+                "afmt": '<div style="display: flex; justify-content: center;">{{Answer}}</div>',
+            },
+        ],
     )
+    package = genanki.Package([])
+    package.media_files = list(
+        {
+            os.path.join("learnablemeta_images", v)
+            for v in replacements.values()
+        }
+    )
+
+    # temporary
+    map_list = map_list[:4]
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        for i, meta_map in enumerate(map_list):
+            url = f"https://geometa-web.pages.dev/maps/{meta_map.map_id}"
+            print(f"Crawling {meta_map.name}...")
+            crawl_results = scrape_table_data(url)
+            print(f"Creating deck {meta_map.name} ({i+1} / {len(map_list)}) ...")
+            create_anki_deck(
+                meta_map=meta_map,
+                package=package,
+                model=model,
+                crawl_results=crawl_results,
+                question_image_replacements=replacements,
+                download_directory=tempdir,
+            )
+            # TODO: handle name conflicts in downloaded files
+
+        package.write_to_file("learnable_meta.apkg")
 
 
 # Example usage
