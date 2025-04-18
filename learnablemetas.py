@@ -251,9 +251,9 @@ def main():
     print("Loading map list")
     map_list = load_map_list("https://geometa-web.pages.dev/maps")
 
-    replacements: dict[str, dict[str, str]] = json.load(
+    replacements: dict[str, str] = json.load(
         open("learnablemeta_images/overrides.json")
-    )
+    )["image_overrides"]
 
     model = genanki.Model(
         1425153742,
