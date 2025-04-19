@@ -1,26 +1,17 @@
 import dataclasses
 import json
+import os
+import re
 import tempfile
-from collections.abc import Iterator
 
 import genanki
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import os
 import requests
 from bs4 import BeautifulSoup
-
-from tqdm import tqdm
-
-from typing import List, Dict, Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-import re
-import logging
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from tqdm import tqdm
 
 
 @dataclasses.dataclass
@@ -47,59 +38,58 @@ def load_map_list(base_url: str) -> list[MetaMap]:
             return match.group(1)
         return None
 
-    try:
-        driver.get(base_url)
+    driver.get(base_url)
 
-        # Find all map containers
-        map_containers = driver.find_elements(
-            By.CSS_SELECTOR,
-            "div.bg-card.text-card-foreground.rounded-xl.border.shadow.flex.flex-col",
+    # Find all map containers
+    map_containers = driver.find_elements(
+        By.CSS_SELECTOR,
+        "div.bg-card.text-card-foreground.rounded-xl.border.shadow.flex.flex-col",
+    )
+
+    maps_data = []
+    for container in tqdm(map_containers):
+        # Extract name
+        name_element = container.find_element(
+            By.CSS_SELECTOR, "h3.font-semibold.leading-none.tracking-tight"
+        )
+        name = name_element.text
+
+        # Extract author
+        author_element = container.find_element(
+            By.CSS_SELECTOR, "p.text-muted-foreground.text-sm strong"
+        )
+        author = author_element.text
+
+        # Extract description
+        description_element = container.find_element(
+            By.CSS_SELECTOR, "p.mt-6.text-base.text-gray-600.dark\\:text-gray-300"
+        )
+        description = description_element.text
+
+        # Extract difficulty
+        # difficulty_element = container.find_element(By.XPATH,
+        #                                            ".//svg[contains(@class, 'iconify--carbon')]/parent::div")
+        # difficulty = difficulty_element.text.strip()
+        difficulty = "?"
+
+        # Extract map_id from play link
+        play_link = container.find_element(By.CSS_SELECTOR, "a[href*='maps/']")
+        href = play_link.get_attribute("href")
+        map_id = extract_map_id(href)
+
+        maps_data.append(
+            {
+                "name": name,
+                "author": author,
+                "description": description,
+                "map_id": map_id,
+                "difficulty": difficulty,
+            }
         )
 
-        maps_data = []
-        for container in tqdm(map_containers):
-            # Extract name
-            name_element = container.find_element(
-                By.CSS_SELECTOR, "h3.font-semibold.leading-none.tracking-tight"
-            )
-            name = name_element.text
+    driver.quit()
 
-            # Extract author
-            author_element = container.find_element(
-                By.CSS_SELECTOR, "p.text-muted-foreground.text-sm strong"
-            )
-            author = author_element.text
-
-            # Extract description
-            description_element = container.find_element(
-                By.CSS_SELECTOR, "p.mt-6.text-base.text-gray-600.dark\\:text-gray-300"
-            )
-            description = description_element.text
-
-            # Extract difficulty
-            # difficulty_element = container.find_element(By.XPATH,
-            #                                            ".//svg[contains(@class, 'iconify--carbon')]/parent::div")
-            # difficulty = difficulty_element.text.strip()
-            difficulty = "?"
-
-            # Extract map_id from play link
-            play_link = container.find_element(By.CSS_SELECTOR, "a[href*='maps/']")
-            href = play_link.get_attribute("href")
-            map_id = extract_map_id(href)
-
-            maps_data.append(
-                {
-                    "name": name,
-                    "author": author,
-                    "description": description,
-                    "map_id": map_id,
-                    "difficulty": difficulty,
-                }
-            )
-        return [MetaMap(**x) for x in maps_data]
-
-    finally:
-        driver.quit()
+    return [MetaMap(**x) for x in maps_data]
 
 
 def scrape_table_data(url: str, wait_time: int = 10) -> dict[str, str]:
@@ -121,44 +111,41 @@ def scrape_table_data(url: str, wait_time: int = 10) -> dict[str, str]:
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(time_to_wait=1)
 
-    try:
-        # Navigate to the URL
-        driver.get(url)
+    # Navigate to the URL
+    driver.get(url)
 
-        # Wait for the table to load
-        WebDriverWait(driver, wait_time).until(
-            EC.presence_of_element_located((By.TAG_NAME, "table"))
-        )
+    # Wait for the table to load
+    WebDriverWait(driver, wait_time).until(
+        EC.presence_of_element_located((By.TAG_NAME, "table"))
+    )
 
-        # Find all td elements
-        td_elements = driver.find_elements(By.TAG_NAME, "td")
+    # Find all td elements
+    td_elements = driver.find_elements(By.TAG_NAME, "td")
 
-        page_title = driver.title
+    page_title = driver.title
 
-        # Click on each td element and process the results
-        for td in tqdm(td_elements):
-            # Store the td text
-            td_text = td.text
+    # Click on each td element and process the results
+    for td in tqdm(td_elements):
+        # Store the td text
+        td_text = td.text
 
-            # Click the td element
-            td.click()
+        # Click the td element
+        td.click()
 
-            # Find the div with main contents
-            xpath_condition = f"[node()[contains(., '{page_title}')] and node()[contains(., '{td_text.replace("'", "\\'")}')]]"
-            xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
-            target_div = driver.find_element(By.XPATH, xpath)
+        # Find the div with main contents
+        xpath_condition = f"[node()[contains(., '{page_title}')] and node()[contains(., '{td_text.replace("'", "\\'")}')]]"
+        xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
+        target_div = driver.find_element(By.XPATH, xpath)
 
-            if target_div is None:
-                print(f"Error: Could not find a div containing the text '{page_title}'")
-                continue
+        if target_div is None:
+            print(f"Error: Could not find a div containing the text '{page_title}'")
+            continue
 
-            # Store the data in our results list
-            result[td_text] = target_div.get_attribute("outerHTML")
+        # Store the data in our results list
+        result[td_text] = target_div.get_attribute("outerHTML")
 
-        return result
-    finally:
-        # Clean up
-        driver.quit()
+    driver.quit()
+    return result
 
 
 def remove_class_attributes(html_string: str) -> str:
@@ -253,7 +240,7 @@ def main():
 
     replacements: dict[str, str] = json.load(
         open("learnablemeta_images/overrides.json")
-    )["image_overrides"]
+    )["custom_image"]
 
     model = genanki.Model(
         1425153742,
@@ -273,10 +260,7 @@ def main():
     )
     package = genanki.Package([])
     package.media_files = list(
-        {
-            os.path.join("learnablemeta_images", v)
-            for v in replacements.values()
-        }
+        {os.path.join("learnablemeta_images", v) for v in replacements.values()}
     )
 
     # temporary
@@ -287,7 +271,7 @@ def main():
             url = f"https://geometa-web.pages.dev/maps/{meta_map.map_id}"
             print(f"Crawling {meta_map.name}...")
             crawl_results = scrape_table_data(url)
-            print(f"Creating deck {meta_map.name} ({i+1} / {len(map_list)}) ...")
+            print(f"Creating deck {meta_map.name} ({i + 1} / {len(map_list)}) ...")
             create_anki_deck(
                 meta_map=meta_map,
                 package=package,
