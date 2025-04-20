@@ -16,12 +16,13 @@ class Config:
 
 
 def main():
+    config = Config(**json.load(open(os.path.join(os.path.dirname(__file__), "config.json"))))
+
     print("Loading map list")
     map_list = scrape.load_map_list(os.path.join(BASE_URL, "maps"))
 
-    config = Config(**json.load(open("config.json")))
-
     with tempfile.TemporaryDirectory() as tempdir:
+        print("Creating Anki package")
         package = anki.create_anki_package(
             workdir=tempdir,
             map_list=map_list[:3],  # temporary slice
