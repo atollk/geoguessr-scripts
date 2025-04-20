@@ -27,9 +27,7 @@ class GeoGuessrScraper:
             {
                 "printing.print_preview_sticky_settings.appState": json.dumps(
                     {
-                        "recentDestinations": [
-                            {"id": "Save as PDF", "origin": "local", "account": ""}
-                        ],
+                        "recentDestinations": [{"id": "Save as PDF", "origin": "local", "account": ""}],
                         "selectedDestinationId": "Save as PDF",
                         "version": 2,
                         "isHeaderFooterEnabled": False,
@@ -55,9 +53,7 @@ class GeoGuessrScraper:
         while True:
             # Calculate current viewport height
             viewport_height = self.driver.execute_script("return window.innerHeight")
-            total_height = self.driver.execute_script(
-                "return document.body.scrollHeight"
-            )
+            total_height = self.driver.execute_script("return document.body.scrollHeight")
             current_position = self.driver.execute_script("return window.pageYOffset")
 
             # Scroll in smaller increments (1/4 of viewport) for smoother loading
@@ -86,9 +82,7 @@ class GeoGuessrScraper:
         try:
             self.driver.get(base_url)
             # Wait for initial content to load
-            WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "mdb-table-row"))
-            )
+            WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "mdb-table-row")))
 
             # Scroll through page to load all dynamic content
             self.scroll_to_bottom(pause_time=0.1)
@@ -105,12 +99,8 @@ class GeoGuessrScraper:
                         if match:
                             path = match.group(1)
                             full_url = urljoin(base_url, path)
-                            country_name = row.find_element(
-                                By.CLASS_NAME, "flag-name"
-                            ).text
-                            country_links.append(
-                                {"url": full_url, "name": country_name}
-                            )
+                            country_name = row.find_element(By.CLASS_NAME, "flag-name").text
+                            country_links.append({"url": full_url, "name": country_name})
                 except Exception as e:
                     print(f"Error processing row: {e}")
                     continue
@@ -137,12 +127,8 @@ class GeoGuessrScraper:
             try:
                 header = self.driver.find_element(By.TAG_NAME, "header")
                 footer = self.driver.find_element(By.TAG_NAME, "footer")
-                self.driver.execute_script(
-                    "arguments[0].style.display = 'none';", header
-                )
-                self.driver.execute_script(
-                    "arguments[0].style.display = 'none';", footer
-                )
+                self.driver.execute_script("arguments[0].style.display = 'none';", header)
+                self.driver.execute_script("arguments[0].style.display = 'none';", footer)
             except:
                 pass
 
