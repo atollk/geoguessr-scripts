@@ -12,7 +12,6 @@ BASE_URL = "https://geometa-web.pages.dev/"
 class Config:
     custom_image: dict[str, str]
     select_image: dict[str, int]
-    todo: list[str]
 
 
 def main():

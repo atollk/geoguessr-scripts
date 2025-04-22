@@ -70,7 +70,20 @@
     "Mexico - Red agricultural fields": "mexico_red_agriculture.png",
     "Mexico - Saguaro Cacti": "mexico_saguaro_cacti.png",
     "Mexico - White middle roadlines": "mexico_white_middle_roadline.png",
-    "Mexico - Wooden hanging insulator pole": "mexico_wooden_hanging_insulator.png"
+    "Mexico - Wooden hanging insulator pole": "mexico_wooden_hanging_insulator.png",
+    "Croatia - Bollard": "Croatia+bollard.png",
+    "Chile - Unique car": "chile+car.png",
+    "Estonia - Bollard": "estonia_bollard.png",
+    "Greece - Bollard": "gr_bollard.png",
+    "Hungary - Bollard": "hu_bollard.png",
+    "Canada - Ontario speed signs": "ontario_speed_sign.jpg",
+    "Canada - Sask alt insulators": "canada_sask_insulator.png",
+    "Latvia - Bollard": "latvia_bollard.png",
+    "Malaysia - Sabah pole": "malaysia_sabah_pole.png",
+    "Mexico - Thick Arrows": "mx_arrow.png",
+    "South Africa - Bird nests pole top": "sa_bird_nest.png",
+    "Italy - License plates": "italy_license_plate.png",
+    "South Korea - Jeju vulcanic rocks": "south_korea_jeju_rocks.png"
   },
   "select_image": {
     "India - Assam pole top": 1,
@@ -120,23 +133,8 @@
     "Japan - Shikoku reflector": 1,
     "Japan - Tohoku plate": 1,
     "Japan - Tohoku reflectors": 1,
-    "Japan - Yamaguchi guardrails": 1
-  },
-  "todo": [
-    "Croatia - Bollard",
-    "Chile - Unique car",
-    "Estonia - Bollard",
-    "Greece - Bollard",
-    "Hungary - Bollard",
-    "Canada - Ontario speed signs",
-    "Canada - Sask alt insulators",
-    "Laos - Unique car",
-    "Latvia - Bollard",
-    "Malaysia - Sabah pole",
-    "Mexico - Thick Arrows",
-    "Qatar - Car meta",
-    "South Africa - Bird nests pole top",
-    "Italy - License plates",
-    "South Korea - Jeju vulcanic rocks"
-  ]
+    "Japan - Yamaguchi guardrails": 1,
+    "Laos - Unique car": 1,
+    "Qatar - Car meta": 2
+  }
 }
