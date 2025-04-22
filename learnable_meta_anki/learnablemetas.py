@@ -24,7 +24,7 @@ def main():
         print("Creating Anki package")
         package = anki.create_anki_package(
             workdir=tempdir,
-            map_list=map_list[:3],  # temporary slice
+            map_list=map_list[19:20],  # TODO
             config=config,
         )
         package.write_to_file("learnable_meta.apkg")

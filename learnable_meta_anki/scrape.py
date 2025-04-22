@@ -119,9 +119,14 @@ def scrape_table_data(url: str) -> dict[str, str]:
         td.click()
 
         # Find the div with main contents
-        xpath_condition = (
-            f"[node()[contains(., '{page_title}')] and node()[contains(., '{td_text.replace("'", "\\'")}')]]"
-        )
+        # XPath doesn't have string escaping so we need to be creative.
+        if "'" in td_text:
+            parts = td_text.split("'")
+            joined_parts = ', "\'", '.join(f"'{p}'" for p in parts)
+            xpath_meta_name = f"concat({joined_parts})"
+        else:
+            xpath_meta_name = f"'{td_text}'"
+        xpath_condition = f"[node()[contains(., '{page_title}')] and node()[contains(., {xpath_meta_name})]]"
         xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
         target_div = driver.find_element(By.XPATH, xpath)
 
