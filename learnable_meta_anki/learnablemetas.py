@@ -39,4 +39,6 @@ def main():
 
 
 if __name__ == "__main__":
+    # TODO: add option to include online links rather than packed media files
+    # TODO: add option to create a separate APK for each deck
     main()
