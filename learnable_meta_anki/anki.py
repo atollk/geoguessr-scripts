@@ -6,7 +6,10 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 from learnable_meta_anki.learnablemetas import Config, BASE_URL
-from learnable_meta_anki.scrape import MetaMap, scrape_table_data
+from learnable_meta_anki.scrape import MetaMap, scrape_map
+import logging
+
+logger = logging.getLogger(__name__)
 
 CARD_MODEL = genanki.Model(
     1425153742,
@@ -30,7 +33,6 @@ def _remove_class_attributes(html_string: str) -> str:
     """Cleans up all 'class' attributes from an HTML string."""
     soup = BeautifulSoup(html_string, "html.parser")
 
-    # Find all elements with class attribute
     for element in soup.find_all(attrs={"class": True}):
         del element["class"]
 
@@ -56,7 +58,6 @@ def _download_images(html_string: str, temp_folder: str) -> list[str]:
         if not src:
             continue
 
-        # img_url = urljoin(base_url, src)
         img_url = src
 
         # Determine filename
@@ -75,9 +76,9 @@ def _download_images(html_string: str, temp_folder: str) -> list[str]:
                         f.write(chunk)
                 download_results.append(file_path)
             else:
-                print(f"Failed to download {img_url}: Status code {response.status_code}")
+                logger.error(f"Failed to download {img_url}: Status code {response.status_code}")
         except Exception as e:
-            print(f"Error downloading {img_url}: {e}")
+            logger.error(f"Error downloading {img_url}: {e}")
 
     return download_results
 
@@ -148,10 +149,9 @@ def create_anki_package(
     package.media_files = list({os.path.join("images", v) for v in config.custom_image.values()})
 
     for i, meta_map in enumerate(map_list):
-        url = os.path.join(BASE_URL, "maps", meta_map.map_id)
-        print(f"Crawling {meta_map.name}...")
-        metas = scrape_table_data(url)
-        print(f"Creating deck {meta_map.name} ({i + 1} / {len(map_list)}) ...")
+        logger.info(f"Crawling {meta_map.name}...")
+        metas = scrape_map(meta_map)
+        logger.info(f"Creating deck {meta_map.name} ({i + 1} / {len(map_list)}) ...")
         deck, media_files = create_anki_deck(
             meta_map=meta_map,
             metas=metas,

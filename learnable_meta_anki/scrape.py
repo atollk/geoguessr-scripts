@@ -1,11 +1,19 @@
 import dataclasses
+import html
 import re
 
+import selenium.webdriver.remote.webelement
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 from tqdm import tqdm
+
+import os.path
+from learnablemetas import BASE_URL
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -15,6 +23,22 @@ class MetaMap:
     description: str
     map_id: str
     difficulty: str
+
+
+def _string_to_xpath_expr(string: str) -> str:
+    # XPath doesn't have string escaping so we need to be creative.
+    if "'" in string:
+        parts = string.split("'")
+        joined_parts = ', "\'", '.join(f"'{p}'" for p in parts)
+        xpath_meta_name = f"concat({joined_parts})"
+    else:
+        xpath_meta_name = f"'{string}'"
+    return xpath_meta_name
+
+
+def _get_raw_html_text(element: selenium.webdriver.remote.webelement.WebElement) -> str:
+    # Since we are using this value in Xpath later, it needs to be HTML-accurate, not the rendered text.
+    return html.unescape(re.sub(r"<!--.*?-->", "", element.get_attribute("innerHTML"), flags=re.DOTALL))
 
 
 def load_map_list(base_url: str) -> list[MetaMap]:
@@ -48,7 +72,7 @@ def load_map_list(base_url: str) -> list[MetaMap]:
     for container in tqdm(map_containers):
         # Extract name
         name_element = container.find_element(By.CSS_SELECTOR, "h3.font-semibold.leading-none.tracking-tight")
-        name = name_element.text
+        name = _get_raw_html_text(name_element)
 
         # Extract author
         author_element = container.find_element(By.CSS_SELECTOR, "p.text-muted-foreground.text-sm strong")
@@ -86,7 +110,7 @@ def load_map_list(base_url: str) -> list[MetaMap]:
     return [MetaMap(**x) for x in maps_data]
 
 
-def scrape_table_data(url: str) -> dict[str, str]:
+def scrape_map(meta_map: MetaMap) -> dict[str, str]:
     """
     Extracts a list of all metas from a single list.
     Returns a dict which maps meta names to their HTML content.
@@ -100,42 +124,40 @@ def scrape_table_data(url: str) -> dict[str, str]:
     driver.implicitly_wait(time_to_wait=1)
 
     # Navigate to the URL
+    url = os.path.join(BASE_URL, "maps", meta_map.map_id)
     driver.get(url)
 
     # Wait for the table to load
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.TAG_NAME, "table")))
+    WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.TAG_NAME, "table")))
 
     # Find all td elements
     td_elements = driver.find_elements(By.TAG_NAME, "td")
 
-    page_title = driver.title
+    xpath_map_name = _string_to_xpath_expr(meta_map.name)
 
     # Click on each td element and process the results
     for td in tqdm(td_elements):
-        # Store the td text
-        td_text = td.text
+        try:
+            # Store the td text
+            td_text = _get_raw_html_text(td)
 
-        # Click the td element
-        td.click()
+            # Click the td element
+            td.click()
 
-        # Find the div with main contents
-        # XPath doesn't have string escaping so we need to be creative.
-        if "'" in td_text:
-            parts = td_text.split("'")
-            joined_parts = ', "\'", '.join(f"'{p}'" for p in parts)
-            xpath_meta_name = f"concat({joined_parts})"
-        else:
-            xpath_meta_name = f"'{td_text}'"
-        xpath_condition = f"[node()[contains(., '{page_title}')] and node()[contains(., {xpath_meta_name})]]"
-        xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
-        target_div = driver.find_element(By.XPATH, xpath)
+            # Find the div with main contents
+            xpath_meta_name = _string_to_xpath_expr(td_text)
+            xpath_condition = f"[node()[contains(., {xpath_map_name})] and node()[contains(., {xpath_meta_name})]]"
+            xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
+            target_div = driver.find_element(By.XPATH, xpath)
 
-        if target_div is None:
-            print(f"Error: Could not find a div containing the text '{page_title}'")
-            continue
+            if target_div is None:
+                logger.error(f"Error: Could not find a div containing the texts '{meta_map.name}' and '{td_text}'")
+                continue
 
-        # Store the data in our results list
-        result[td_text] = target_div.get_attribute("outerHTML")
+            # Store the data in our results list
+            result[td_text] = target_div.get_attribute("outerHTML")
+        except Exception as e:
+            logger.warning(str(e))
 
     driver.quit()
     return result
