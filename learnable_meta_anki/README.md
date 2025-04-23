@@ -8,8 +8,11 @@ You can, however, run this script yourself to generate the deck on your computer
 
 ## Running the script
 
+Requirements are:
+- Python 3.12 or newer
+- Firefox (I'll probably add Chrome support soon)
+
 You need to download this git repository (either via `git clone` or the download button on the GitHub website).
-You also need to have Python 3.12 or newer installed on your system.
 Then, run the following code in your command line (from the geoguessr-scripts folder) to build the Anki deck.
 This is written for Linux (bash); it should work on macOS, but if you are on Windows, you probably need to make some
 adaptions to get it working with cmd.
