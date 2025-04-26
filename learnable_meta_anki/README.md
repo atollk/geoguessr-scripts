@@ -6,11 +6,13 @@ At the moment, the distribution license of Learnable Meta does not allow its con
 deck you can just download and use.
 You can, however, run this script yourself to generate the deck on your computer.
 
+Example Anki card:
+
+![example_note.png](example_note.png)
+
 ## Running the script
 
-Requirements are:
-- Python 3.12 or newer
-- Firefox (I'll probably add Chrome support soon)
+As a requirement, you need to have Python 3.12 or later installed on your system.
 
 You need to download this git repository (either via `git clone` or the download button on the GitHub website).
 Then, run the following code in your command line (from the geoguessr-scripts folder) to build the Anki deck.

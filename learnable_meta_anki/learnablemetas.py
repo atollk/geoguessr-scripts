@@ -1,13 +1,28 @@
 import dataclasses
 import json
 import os
+import sys
 import tempfile
 
 from learnable_meta_anki import anki, scrape
 import logging
 
+
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        if record.levelno >= logging.WARNING:
+            return f"{record.levelname}: {record.getMessage()}"
+        return record.getMessage()
+
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(CustomFormatter())
+logging.basicConfig(
+    handlers=[handler],
+    level=logging.INFO,
+)
+
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 BASE_URL = "https://geometa-web.pages.dev/"
 
