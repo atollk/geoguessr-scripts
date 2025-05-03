@@ -127,7 +127,7 @@ def create_anki_deck(
     Creates a deck for a given meta map.
     """
     deck_description = f"{meta_map.description}\n\nCreated from {BASE_URL} using github.com/atollk/geoguessr-scripts."
-    deck = genanki.Deck(hash(meta_map.name), meta_map.name, description=deck_description)
+    deck = genanki.Deck(deck_id=hash(meta_map.name), name=f"Learnable Meta::{meta_map.name}", description=deck_description)
     new_media_files = []
     for meta_name, html_string in tqdm(metas.items()):
         cards, media_files = create_anki_cards_from_meta(
@@ -149,7 +149,7 @@ def create_anki_package(
     map_list: list[MetaMap],
 ) -> genanki.Package:
     package = genanki.Package([])
-    package.media_files = list({os.path.join("images", v) for v in config.custom_image.values()})
+    package.media_files = list({os.path.join("images", i) for v in config.custom_image.values() for i in (v if isinstance(v, list) else [v])})
 
     for i, meta_map in enumerate(map_list):
         logger.info(f"Crawling {meta_map.name}...")

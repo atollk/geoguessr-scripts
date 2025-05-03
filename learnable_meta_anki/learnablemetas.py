@@ -41,6 +41,7 @@ def main():
 
     # uncomment for debugging
     # map_list = [next(m for m in map_list if "ALM -  Unique & Shared European & Slavic Letters" in m.name)]
+    map_list = map_list[0:1]
 
     with tempfile.TemporaryDirectory() as tempdir:
         logger.info("Creating Anki package")
