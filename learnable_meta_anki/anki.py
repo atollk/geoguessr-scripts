@@ -95,7 +95,10 @@ def create_anki_cards_from_meta(
     content_images = _download_images(meta_html_content, workdir)
     media_files = content_images
     if meta_name in config.custom_image:
-        question_images = [config.custom_image[meta_name]]
+        custom_image = config.custom_image[meta_name]
+        if isinstance(custom_image, str):
+            custom_image = [custom_image]
+        question_images = custom_image
     elif meta_name in config.select_image:
         question_images = [content_images[config.select_image[meta_name] - 1]]
     else:
