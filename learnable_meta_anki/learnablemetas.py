@@ -3,6 +3,8 @@ import json
 import os
 import sys
 import tempfile
+import argparse
+import fnmatch
 
 from learnable_meta_anki import anki, scrape
 import logging
@@ -32,16 +34,30 @@ class Config:
     custom_image: dict[str, str]
     select_image: dict[str, int]
 
+@dataclasses.dataclass
+class CliArgs:
+    config: str
+    include_maps: str
 
-def main():
-    config = Config(**json.load(open(os.path.join(os.path.dirname(__file__), "config.json"))))
+def _parse_cli_args(args: list[str]) -> CliArgs:
+    parser = argparse.ArgumentParser(description="Generate an Anki package from a list of learnable metas.")
+    parser.add_argument("--config", type=str, default=os.path.join(os.path.dirname(__file__), "config.json"), help="Path to the config file")
+    parser.add_argument("--include_maps", type=str, default="*", help="Filter by map name (supports wildcards)")
+    parsed = parser.parse_args(args)
+    return CliArgs(parsed.config, parsed.include_maps)
+
+
+def main(raw_args: list[str]) -> None:
+    args = _parse_cli_args(raw_args)
+
+    config = Config(**json.load(open(args.config, "r")))
 
     logger.info("Loading map list")
     map_list = scrape.load_map_list(os.path.join(BASE_URL, "maps"))
-
-    # uncomment for debugging
-    # map_list = [next(m for m in map_list if "ALM -  Unique & Shared European & Slavic Letters" in m.name)]
-    map_list = map_list[0:1]
+    map_list = [
+        map_item for map_item in map_list
+        if fnmatch.fnmatch(map_item.name, args.include_maps)
+    ]
 
     with tempfile.TemporaryDirectory() as tempdir:
         logger.info("Creating Anki package")
@@ -57,4 +73,4 @@ def main():
 if __name__ == "__main__":
     # TODO: add option to include online links rather than packed media files
     # TODO: add option to create a separate APK for each deck
-    main()
+    main(sys.argv[1:])
