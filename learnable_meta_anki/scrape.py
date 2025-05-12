@@ -14,7 +14,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from tqdm import tqdm
 
 import os.path
-from learnablemetas import BASE_URL
+from shared import BASE_URL
 import logging
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,7 @@ def scrape_map(meta_map: MetaMap) -> dict[str, str]:
     Extracts a list of all metas from a single list.
     Returns a dict which maps meta names to their HTML content.
     """
-    result = {}
+    result: dict[str, str] = {}
 
     with _webdriver() as driver:
         # Navigate to the URL
@@ -165,13 +165,12 @@ def scrape_map(meta_map: MetaMap) -> dict[str, str]:
                 xpath_condition = f"[node()[contains(., {xpath_map_name})] and node()[contains(., {xpath_meta_name})]]"
                 xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
                 target_div = driver.find_element(By.XPATH, xpath)
-
-                if target_div is None:
-                    logger.error(f"Error: Could not find a div containing the texts '{meta_map.name}' and '{td_text}'")
-                    continue
-
                 # Store the data in our result list
-                result[td_text] = target_div.get_attribute("outerHTML")
+                outer_html = target_div.get_attribute("outerHTML")
+                if outer_html:
+                    result[td_text] = outer_html
+                else:
+                    logger.warning(f"No outer HTML found for {td_text}")
             except Exception as e:
                 logger.warning(str(e))
 

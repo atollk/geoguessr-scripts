@@ -1,17 +1,22 @@
 import os
 
-import genanki
+from bs4.element import Tag
+from genanki.model import Model
+from genanki.deck import Deck
+from genanki.note import Note
+from genanki.package import Package
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from learnable_meta_anki.learnablemetas import Config, BASE_URL
 from learnable_meta_anki.scrape import MetaMap, scrape_map
 import logging
 
+from learnable_meta_anki.shared import Config, BASE_URL
+
 logger = logging.getLogger(__name__)
 
-CARD_MODEL = genanki.Model(
+CARD_MODEL = Model(
     1425153742,
     "Meta",
     fields=[
@@ -50,10 +55,12 @@ def _download_images(html_string: str, temp_folder: str) -> list[str]:
     soup = BeautifulSoup(html_string, "html.parser")
     images = soup.find_all("img")
 
-    download_results = []
+    download_results: list[str] = []
 
     for i, img in enumerate(images):
         # Get image URL and make it absolute if it's relative
+        if not isinstance(img, Tag):
+            continue
         src = img.get("src")
         if not src:
             continue
@@ -73,7 +80,7 @@ def _download_images(html_string: str, temp_folder: str) -> list[str]:
             if response.status_code == 200:
                 with open(file_path, "wb") as f:
                     for chunk in response.iter_content(1024):
-                        f.write(chunk)
+                        _ = f.write(chunk)
                 download_results.append(file_path)
             else:
                 logger.error(f"Failed to download {img_url}: Status code {response.status_code}")
@@ -89,9 +96,9 @@ def create_anki_cards_from_meta(
     workdir: str,
     meta_html_content: str,
     meta_name: str,
-) -> tuple[list[genanki.Card], list[str]]:
+) -> tuple[list[Note], list[str]]:
     # TODO: render images in answer offline
-    cards = []
+    cards: list[Note] = []
     content_images = _download_images(meta_html_content, workdir)
     media_files = content_images
     if meta_name in config.custom_image:
@@ -104,7 +111,7 @@ def create_anki_cards_from_meta(
     else:
         question_images = content_images
     for image in question_images:
-        note = genanki.Note(
+        note = Note(
             model=CARD_MODEL,
             fields=[
                 meta_name,
@@ -122,22 +129,22 @@ def create_anki_deck(
     metas: dict[str, str],
     config: Config,
     workdir: str,
-) -> tuple[genanki.Deck, list[str]]:
+) -> tuple[Deck, list[str]]:
     """
     Creates a deck for a given meta map.
     """
     deck_description = f"{meta_map.description}\n\nCreated from {BASE_URL} using github.com/atollk/geoguessr-scripts."
-    deck = genanki.Deck(deck_id=hash(meta_map.name), name=f"Learnable Meta::{meta_map.name}", description=deck_description)
+    deck = Deck(deck_id=hash(meta_map.name), name=f"Learnable Meta::{meta_map.name}", description=deck_description)
     new_media_files = []
     for meta_name, html_string in tqdm(metas.items()):
-        cards, media_files = create_anki_cards_from_meta(
+        notes, media_files = create_anki_cards_from_meta(
             config=config,
             workdir=workdir,
             meta_html_content=html_string,
             meta_name=meta_name,
         )
-        for card in cards:
-            deck.add_note(card)
+        for note in notes:
+            deck.add_note(note)
         new_media_files += media_files
     return deck, new_media_files
 
@@ -147,8 +154,8 @@ def create_anki_package(
     workdir: str,
     config: Config,
     map_list: list[MetaMap],
-) -> genanki.Package:
-    package = genanki.Package([])
+) -> Package:
+    package = Package([])
     package.media_files = list({os.path.join("images", i) for v in config.custom_image.values() for i in (v if isinstance(v, list) else [v])})
 
     for i, meta_map in enumerate(map_list):

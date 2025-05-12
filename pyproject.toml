@@ -1,0 +1,28 @@
+[project]
+name = "geoguessr-scripts"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "selenium~=4.31.0",
+    "genanki~=0.13.1",
+    "beautifulsoup4~=4.13.3",
+    "ruff~=0.11.5",
+    "requests~=2.32.3",
+    "tqdm~=4.67.1",
+    "basedpyright~=1.29.0",
+]
+
+[tool.basedpyright]
+include = ["learnable_meta_anki"]
+defineConstant = { DEBUG = true }
+reportAny = false
+reportExplicitAny = false
+
+executionEnvironments = [
+  { root = "src/web", pythonVersion = "3.5", pythonPlatform = "Windows", extraPaths = [ "src/service_libs" ], reportMissingImports = "warning" },
+  { root = "src/sdk", pythonVersion = "3.0", extraPaths = [ "src/backend" ] },
+  { root = "src/tests", reportPrivateUsage = false, extraPaths = ["src/tests/e2e", "src/sdk" ]},
+  { root = "src" }
+]

@@ -9,6 +9,8 @@ import fnmatch
 from learnable_meta_anki import anki, scrape
 import logging
 
+from learnable_meta_anki.shared import Config, BASE_URL
+
 
 class CustomFormatter(logging.Formatter):
     def format(self, record):
@@ -25,14 +27,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-BASE_URL = "https://geometa-web.pages.dev/"
-
-
-@dataclasses.dataclass
-class Config:
-    custom_image: dict[str, str]
-    select_image: dict[str, int]
 
 @dataclasses.dataclass
 class CliArgs:
