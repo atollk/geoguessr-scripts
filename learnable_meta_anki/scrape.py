@@ -49,7 +49,7 @@ def _get_raw_html_text(element: selenium.webdriver.remote.webelement.WebElement)
 def _webdriver() -> Generator[WebDriver, Any, None]:
     # try to use Chrome and fall back to Firefox
     try:
-        raise Exception()
+        raise Exception("Chrome doesn't work with Learnable Metas at the moment.")
         options = webdriver.ChromeOptions()
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -146,26 +146,30 @@ def scrape_map(meta_map: MetaMap) -> dict[str, str]:
         WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.TAG_NAME, "table")))
 
         # Find all td elements
-        td_elements = driver.find_elements(By.TAG_NAME, "td")
-
-        xpath_map_name = _string_to_xpath_expr(meta_map.name)
+        td_elements = [
+            td for td in driver.find_elements(By.TAG_NAME, "td") if len(td.find_elements(By.TAG_NAME, "button")) == 0
+        ]
 
         # Click on each td element and process the results
         for td in tqdm(td_elements):
             try:
-                # Store the td text
-                td_text = _get_raw_html_text(td)
+                td_title = td.find_element(By.CSS_SELECTOR, "span.whitespace-normal")
+                td_text = td_title.text
 
                 # Click the td element
                 td.click()
 
-                print(1)
-
                 # Find the div with main contents
                 xpath_meta_name = _string_to_xpath_expr(td_text)
-                xpath_condition = f"[node()[contains(., {xpath_map_name})] and node()[contains(., {xpath_meta_name})]]"
-                xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
-                target_div = driver.find_element(By.XPATH, xpath)
+                xpath_map_name = _string_to_xpath_expr(meta_map.name)
+
+                # xpath_condition = f"[node()[contains(., {xpath_map_name})] and node()[contains(., {xpath_meta_name})]]"
+                # xpath = f"//*{xpath_condition}[not(./descendant::*{xpath_condition})]/div[not(./descendant::h1)]"
+                # target_div = driver.find_element(By.XPATH, xpath)
+
+                # temp solution but the above one would be nicer
+                target_div = driver.find_element(By.CSS_SELECTOR, "div.overflow-hidden.flex.flex-col")
+
                 # Store the data in our result list
                 outer_html = target_div.get_attribute("outerHTML")
                 if outer_html:

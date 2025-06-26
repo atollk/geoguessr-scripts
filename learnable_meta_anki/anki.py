@@ -107,7 +107,11 @@ def create_anki_cards_from_meta(
             custom_image = [custom_image]
         question_images = custom_image
     elif meta_name in config.select_image:
-        question_images = [content_images[config.select_image[meta_name] - 1]]
+        try:
+            question_images = [content_images[config.select_image[meta_name] - 1]]
+        except IndexError as e:
+            logger.error(f"Error while building map for {meta_name}: {e}")
+            question_images = []
     else:
         question_images = content_images
     for image in question_images:
@@ -161,7 +165,11 @@ def create_anki_package(
 ) -> Package:
     package = Package([])
     package.media_files = list(
-        {os.path.join("images", i) for v in config.custom_image.values() for i in (v if isinstance(v, list) else [v])}
+        {
+            os.path.join("learnable_meta_anki", "images", i)
+            for v in config.custom_image.values()
+            for i in (v if isinstance(v, list) else [v])
+        }
     )
 
     for i, meta_map in enumerate(map_list):
