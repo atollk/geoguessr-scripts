@@ -9,10 +9,10 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-from learnable_meta_anki.scrape import MetaMap, scrape_map
+from .scrape import MetaMap, scrape_map
 import logging
 
-from learnable_meta_anki.shared import Config, BASE_URL
+from .shared import Config, BASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,11 @@ def create_anki_deck(
     Creates a deck for a given meta map.
     """
     deck_description = f"{meta_map.description}\n\nCreated from {BASE_URL} using github.com/atollk/geoguessr-scripts."
-    deck = Deck(deck_id=hash(meta_map.name), name=f"Learnable Meta::{meta_map.name}", description=deck_description)
+    deck = Deck(
+        deck_id=hash(meta_map.name),
+        name=f"Learnable Meta::{meta_map.name}",
+        description=deck_description,
+    )
     new_media_files = []
     for meta_name, html_string in tqdm(metas.items()):
         notes, media_files = create_anki_cards_from_meta(
@@ -156,7 +160,9 @@ def create_anki_package(
     map_list: list[MetaMap],
 ) -> Package:
     package = Package([])
-    package.media_files = list({os.path.join("images", i) for v in config.custom_image.values() for i in (v if isinstance(v, list) else [v])})
+    package.media_files = list(
+        {os.path.join("images", i) for v in config.custom_image.values() for i in (v if isinstance(v, list) else [v])}
+    )
 
     for i, meta_map in enumerate(map_list):
         logger.info(f"Crawling {meta_map.name}...")

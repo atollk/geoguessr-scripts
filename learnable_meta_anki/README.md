@@ -12,7 +12,9 @@ Example Anki card:
 
 ## Running the script
 
-As a requirement, you need to have Python 3.12 or later installed on your system.
+As a requirement, you need to have uv (https://docs.astral.sh/uv/) installed on your system. 
+If you don't have uv and want to install it, you can also install Python and manually install the dependencies.
+There is no easy-to-follow tutorial in this file though.
 
 You need to download this git repository (either via `git clone` or the download button on the GitHub website).
 Then, run the following code in your command line (from the geoguessr-scripts folder) to build the Anki deck.
@@ -20,10 +22,8 @@ This is written for Linux (bash); it should work on macOS, but if you are on Win
 adaptions to get it working with cmd.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m learnable_meta_anki.learnablemetas
+cd learnable_meta_anki
+uv run python3 -m learnablemetas
 ```
 
 ## Bad cards / Contribution

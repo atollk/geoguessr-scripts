@@ -14,7 +14,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from tqdm import tqdm
 
 import os.path
-from shared import BASE_URL
+from .shared import BASE_URL
 import logging
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,7 @@ def _get_raw_html_text(element: selenium.webdriver.remote.webelement.WebElement)
 def _webdriver() -> Generator[WebDriver, Any, None]:
     # try to use Chrome and fall back to Firefox
     try:
+        raise Exception()
         options = webdriver.ChromeOptions()
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -88,23 +89,21 @@ def load_map_list(base_url: str) -> list[MetaMap]:
         # Find all map containers
         map_containers = driver.find_elements(
             By.CSS_SELECTOR,
-            "div.bg-card.text-card-foreground.rounded-xl.border.shadow.flex.flex-col",
+            "div[data-slot=card]",
         )
 
         maps_data = []
         for container in tqdm(map_containers):
             # Extract name
-            name_element = container.find_element(By.CSS_SELECTOR, "h3.font-semibold.leading-none.tracking-tight")
+            name_element = container.find_element(By.CSS_SELECTOR, "[data-slot=card-title]")
             name = _get_raw_html_text(name_element)
 
             # Extract author
-            author_element = container.find_element(By.CSS_SELECTOR, "p.text-muted-foreground.text-sm strong")
+            author_element = container.find_element(By.CSS_SELECTOR, "[data-slot=card-description]")
             author = author_element.text
 
             # Extract description
-            description_element = container.find_element(
-                By.CSS_SELECTOR, "p.mt-6.text-base.text-gray-600.dark\\:text-gray-300"
-            )
+            description_element = container.find_element(By.CSS_SELECTOR, "div[data-slot=card-content]")
             description = description_element.text
 
             # Extract difficulty
@@ -143,7 +142,7 @@ def scrape_map(meta_map: MetaMap) -> dict[str, str]:
         url = os.path.join(BASE_URL, "maps", meta_map.map_id)
         driver.get(url)
 
-        # Wait for the table to load
+        # Wait for the content to load
         WebDriverWait(driver, 5).until(ec.presence_of_element_located((By.TAG_NAME, "table")))
 
         # Find all td elements
@@ -159,6 +158,8 @@ def scrape_map(meta_map: MetaMap) -> dict[str, str]:
 
                 # Click the td element
                 td.click()
+
+                print(1)
 
                 # Find the div with main contents
                 xpath_meta_name = _string_to_xpath_expr(td_text)

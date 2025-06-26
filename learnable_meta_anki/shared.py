@@ -1,6 +1,7 @@
 import dataclasses
 
-BASE_URL = "https://geometa-web.pages.dev/"
+BASE_URL = "https://learnablemeta.com/"
+
 
 @dataclasses.dataclass
 class Config:
