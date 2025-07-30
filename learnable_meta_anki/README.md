@@ -22,8 +22,7 @@ This is written for Linux (bash); it should work on macOS, but if you are on Win
 adaptions to get it working with cmd.
 
 ```bash
-cd learnable_meta_anki
-uv run python3 -m learnablemetas
+uv run python3 -m learnable_meta_anki.learnablemetas
 ```
 
 ## Bad cards / Contribution
