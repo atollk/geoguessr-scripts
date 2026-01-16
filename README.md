@@ -1,9 +1,12 @@
-### learnable_meta_anki
+# GeoGuessr Scripts
 
-Create an Anki deck from the "Learnable Meta" database.
+A collection of tools to enhance your Geoguessr experience. Check the different subdirectories in `src` for more information.
 
-[read more](./learnable_meta_anki/README.md)
+## learnable_meta_anki
 
-### plonkit_llm
+Generate [Anki](https://apps.ankiweb.net/) decks from [Learnable Meta](https://learnablemeta.com/) maps.
+Learn metas even without playing the game, while on your phone or during a commute.
 
-work in progress, ignore this
+## guess_explainer
+
+An AI-powered tool that helps you understand what you missed about a Geoguessr location.

@@ -5,18 +5,19 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "selenium~=4.31.0",
-    "genanki~=0.13.1",
-    "beautifulsoup4~=4.13.3",
-    "ruff~=0.11.5",
-    "requests~=2.32.3",
-    "tqdm~=4.67.1",
-    "basedpyright~=1.29.0",
-    "playwright>=1.53.0",
-    "pillow>=11.3.0",
-    "trio>=0.30.0",
-    "google-genai>=1.26.0",
-    "streetview>=0.0.11",
+    "selenium",
+    "genanki",
+    "beautifulsoup4",
+    "ruff",
+    "requests",
+    "tqdm",
+    "basedpyright",
+    "playwright",
+    "pillow",
+    "trio",
+    "google-genai",
+    "streetview",
+    "gooey",
 ]
 
 [tool.basedpyright]
